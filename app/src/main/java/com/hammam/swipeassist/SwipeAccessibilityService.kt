@@ -26,14 +26,24 @@ class SwipeAccessibilityService : AccessibilityService() {
     private val mainHandler = Handler(Looper.getMainLooper())
 
     private var isJumpingToTop = false
+    private var isHoldingScroll = false
+    private var holdDownDirection = true
     private var fpCallbackRegistered = false
+
+    private val holdScrollRunnable = object : Runnable {
+        override fun run() {
+            if (!isHoldingScroll) return
+            performHoldStep(down = holdDownDirection)
+            mainHandler.postDelayed(this, 95L)
+        }
+    }
 
     private val fpGestureCallback = object : FingerprintGestureController.FingerprintGestureCallback() {
         override fun onGestureDetected(gesture: Int) {
             if (!ScrollPrefs.isFingerprintEnabled(this@SwipeAccessibilityService)) return
             when (gesture) {
-                FingerprintGestureController.FINGERPRINT_GESTURE_SWIPE_DOWN -> performVerticalSwipe(down = true)
-                FingerprintGestureController.FINGERPRINT_GESTURE_SWIPE_UP -> performVerticalSwipe(down = false)
+                FingerprintGestureController.FINGERPRINT_GESTURE_SWIPE_DOWN -> performHoldStep(down = true)
+                FingerprintGestureController.FINGERPRINT_GESTURE_SWIPE_UP -> performHoldStep(down = false)
             }
         }
     }
@@ -77,17 +87,38 @@ class SwipeAccessibilityService : AccessibilityService() {
         val btnDown = view.findViewById<TextView>(R.id.btnScrollDown)
         val btnJumpTop = view.findViewById<TextView>(R.id.btnJumpTop)
 
-        btnUp.setOnClickListener {
-            stopJumpToTop()
-            performVerticalSwipe(down = false)
+        btnUp.setOnTouchListener { _, event ->
+            when (event.action) {
+                MotionEvent.ACTION_DOWN -> {
+                    stopJumpToTop()
+                    startHoldScroll(down = false)
+                    true
+                }
+                MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+                    stopHoldScroll()
+                    true
+                }
+                else -> false
+            }
         }
 
-        btnDown.setOnClickListener {
-            stopJumpToTop()
-            performVerticalSwipe(down = true)
+        btnDown.setOnTouchListener { _, event ->
+            when (event.action) {
+                MotionEvent.ACTION_DOWN -> {
+                    stopJumpToTop()
+                    startHoldScroll(down = true)
+                    true
+                }
+                MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+                    stopHoldScroll()
+                    true
+                }
+                else -> false
+            }
         }
 
         btnJumpTop.setOnClickListener {
+            stopHoldScroll()
             if (isJumpingToTop) {
                 stopJumpToTop()
                 btnJumpTop.text = "⏫"
@@ -117,6 +148,7 @@ class SwipeAccessibilityService : AccessibilityService() {
                     val dy = (event.rawY - initialTouchY).toInt()
                     if (abs(dx) > 10 || abs(dy) > 10) {
                         isDragging = true
+                        stopHoldScroll()
                         params.x = (initialX + dx).coerceAtLeast(0)
                         params.y = (initialY + dy).coerceAtLeast(0)
                         windowManager?.updateViewLayout(view, params)
@@ -125,7 +157,10 @@ class SwipeAccessibilityService : AccessibilityService() {
                         false
                     }
                 }
-                MotionEvent.ACTION_UP -> isDragging
+                MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+                    stopHoldScroll()
+                    isDragging
+                }
                 else -> false
             }
         }
@@ -135,14 +170,28 @@ class SwipeAccessibilityService : AccessibilityService() {
         dockParams = params
     }
 
-    private fun performVerticalSwipe(down: Boolean) {
+    private fun startHoldScroll(down: Boolean) {
+        holdDownDirection = down
+        isHoldingScroll = true
+        mainHandler.removeCallbacks(holdScrollRunnable)
+        performHoldStep(down = down)
+        mainHandler.postDelayed(holdScrollRunnable, 95L)
+    }
+
+    private fun stopHoldScroll() {
+        isHoldingScroll = false
+        mainHandler.removeCallbacks(holdScrollRunnable)
+    }
+
+    private fun performHoldStep(down: Boolean) {
         val metrics = resources.displayMetrics
         val centerX = metrics.widthPixels * 0.5f
-        val distPct = ScrollPrefs.getDistancePct(this) / 100f
-        val duration = ScrollPrefs.getDurationMs(this)
+        val distFactor = (ScrollPrefs.getDistancePct(this) / 100f).coerceIn(0.20f, 0.95f)
+        val duration = ScrollPrefs.getDurationMs(this).coerceIn(70L, 220L)
 
         val height = metrics.heightPixels.toFloat()
-        val span = height * distPct * 0.65f
+        // خطوة تدريجية ناعمة تشبه سحب الإصبع المستمر بدلاً من قفزة كاملة
+        val span = height * distFactor * 0.22f
         val midY = height * 0.5f
 
         val startY = if (down) midY + (span / 2f) else midY - (span / 2f)
@@ -174,8 +223,8 @@ class SwipeAccessibilityService : AccessibilityService() {
                     return
                 }
                 steps++
-                performVerticalSwipe(down = false)
-                mainHandler.postDelayed(this, 180L)
+                performHoldStep(down = false)
+                mainHandler.postDelayed(this, 160L)
             }
         }
         mainHandler.post(runnable)
@@ -184,17 +233,22 @@ class SwipeAccessibilityService : AccessibilityService() {
     private fun stopJumpToTop() {
         isJumpingToTop = false
         mainHandler.removeCallbacksAndMessages(null)
+        if (isHoldingScroll) {
+            mainHandler.postDelayed(holdScrollRunnable, 95L)
+        }
         registerFingerprintGesturesIfSupported()
     }
 
     override fun onAccessibilityEvent(event: android.view.accessibility.AccessibilityEvent?) {}
 
     override fun onInterrupt() {
+        stopHoldScroll()
         stopJumpToTop()
     }
 
     override fun onDestroy() {
         super.onDestroy()
+        stopHoldScroll()
         stopJumpToTop()
         if (fpCallbackRegistered) {
             fingerprintGestureController?.unregisterFingerprintGestureCallback(fpGestureCallback)

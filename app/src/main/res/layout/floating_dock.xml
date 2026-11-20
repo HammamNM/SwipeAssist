@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/dockRoot"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:padding="4dp"
+    android:background="@android:color/black"
+    android:alpha="0.72">
+
+    <TextView
+        android:id="@+id/btnScrollUp"
+        android:layout_width="42dp"
+        android:layout_height="38dp"
+        android:gravity="center"
+        android:text="▲"
+        android:textColor="@android:color/white"
+        android:textSize="16sp" />
+
+    <TextView
+        android:id="@+id/btnScrollDown"
+        android:layout_width="42dp"
+        android:layout_height="38dp"
+        android:gravity="center"
+        android:text="▼"
+        android:textColor="@android:color/white"
+        android:textSize="16sp" />
+
+    <TextView
+        android:id="@+id/btnJumpTop"
+        android:layout_width="42dp"
+        android:layout_height="38dp"
+        android:gravity="center"
+        android:text="⏫"
+        android:textColor="@android:color/holo_orange_light"
+        android:textSize="15sp" />
+
+</LinearLayout>

@@ -1,0 +1,4 @@
+<resources>
+    <string name="app_name">SwipeAssist</string>
+    <string name="accessibility_description">يسمح للتطبيق بتنفيذ حركات السحب والتمرير السريع عبر الأزرار العائمة أو إيماءات البصمة لتخفيف ثقل اللمس.</string>
+</resources>

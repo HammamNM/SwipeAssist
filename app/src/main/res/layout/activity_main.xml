@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:padding="20dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="SwipeAssist — مساعد السحب المحلي"
+            android:textSize="22sp"
+            android:textStyle="bold"
+            android:layout_marginBottom="12dp" />
+
+        <TextView
+            android:id="@+id/tvFingerprintStatus"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="حالة البصمة: جاري الفحص..."
+            android:padding="12dp"
+            android:background="#22888888"
+            android:layout_marginBottom="16dp" />
+
+        <Button
+            android:id="@+id/btnOverlayPerm"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="1. تفعيل صلاحية الظهور فوق التطبيقات"
+            android:layout_marginBottom="10dp" />
+
+        <Button
+            android:id="@+id/btnAccessibilityPerm"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="2. تفعيل خدمة إمكانية الوصول (Accessibility)"
+            android:layout_marginBottom="20dp" />
+
+        <TextView
+            android:id="@+id/tvDistanceLabel"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="مسافة السحب: 65%"
+            android:textStyle="bold" />
+
+        <SeekBar
+            android:id="@+id/seekDistance"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:max="90"
+            android:progress="65"
+            android:layout_marginBottom="16dp" />
+
+        <TextView
+            android:id="@+id/tvDurationLabel"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="مدة السحب (كلما قلّت كان أسرع): 140 ms"
+            android:textStyle="bold" />
+
+        <SeekBar
+            android:id="@+id/seekDuration"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:max="400"
+            android:progress="140"
+            android:layout_marginBottom="16dp" />
+
+        <com.google.android.material.switchmaterial.SwitchMaterial
+            android:id="@+id/switchFingerprint"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="استخدام السحب عبر مستشعر البصمة (إن كان مدعوماً)"
+            android:checked="true" />
+
+    </LinearLayout>
+</ScrollView>

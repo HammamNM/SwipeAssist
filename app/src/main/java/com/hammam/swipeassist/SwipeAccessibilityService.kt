@@ -4,9 +4,17 @@ import android.accessibilityservice.AccessibilityService
 import android.accessibilityservice.FingerprintGestureController
 import android.accessibilityservice.GestureDescription
 import android.annotation.SuppressLint
+import android.app.Notification
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import android.app.PendingIntent
+import android.content.BroadcastReceiver
 import android.content.Context
+import android.content.Intent
+import android.content.IntentFilter
 import android.graphics.Path
 import android.graphics.PixelFormat
+import android.os.Build
 import android.os.Handler
 import android.os.Looper
 import android.provider.Settings
@@ -20,15 +28,30 @@ import kotlin.math.abs
 
 class SwipeAccessibilityService : AccessibilityService() {
 
+    companion object {
+        const val ACTION_TOGGLE_DOCK = "com.hammam.swipeassist.ACTION_TOGGLE_DOCK"
+        private const val CHANNEL_ID = "swipe_assist_channel"
+        private const val NOTIF_ID = 1001
+    }
+
     private var windowManager: WindowManager? = null
     private var dockView: View? = null
     private var dockParams: WindowManager.LayoutParams? = null
+    private var isDockVisible = true
     private val mainHandler = Handler(Looper.getMainLooper())
 
     private var isJumpingToTop = false
     private var isHoldingScroll = false
     private var holdDownDirection = true
     private var fpCallbackRegistered = false
+
+    private val toggleReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+            if (intent?.action == ACTION_TOGGLE_DOCK) {
+                toggleDockVisibility()
+            }
+        }
+    }
 
     private val holdScrollRunnable = object : Runnable {
         override fun run() {
@@ -50,8 +73,71 @@ class SwipeAccessibilityService : AccessibilityService() {
 
     override fun onServiceConnected() {
         super.onServiceConnected()
+        registerToggleReceiver()
+        showControlNotification()
         setupFloatingDock()
         registerFingerprintGesturesIfSupported()
+    }
+
+    private fun registerToggleReceiver() {
+        val filter = IntentFilter(ACTION_TOGGLE_DOCK)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            registerReceiver(toggleReceiver, filter, Context.RECEIVER_NOT_EXPORTED)
+        } else {
+            @Suppress("UnspecifiedRegisterReceiverFlag")
+            registerReceiver(toggleReceiver, filter)
+        }
+    }
+
+    private fun showControlNotification() {
+        val manager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val channel = NotificationChannel(
+                CHANNEL_ID,
+                "SwipeAssist Control",
+                NotificationManager.IMPORTANCE_LOW
+            )
+            manager.createNotificationChannel(channel)
+        }
+
+        val toggleIntent = Intent(ACTION_TOGGLE_DOCK).setPackage(packageName)
+        val pendingIntent = PendingIntent.getBroadcast(
+            this,
+            0,
+            toggleIntent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+
+        val label = if (isDockVisible) "إخفاء الشريط الجانبي" else "إظهار الشريط الجانبي"
+        val builder = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            Notification.Builder(this, CHANNEL_ID)
+        } else {
+            @Suppress("DEPRECATION")
+            Notification.Builder(this)
+        }
+
+        val notif = builder
+            .setContentTitle("SwipeAssist نشط")
+            .setContentText(label)
+            .setSmallIcon(android.R.drawable.ic_menu_sort_by_size)
+            .setContentIntent(pendingIntent)
+            .setOngoing(true)
+            .build()
+
+        manager.notify(NOTIF_ID, notif)
+    }
+
+    private fun toggleDockVisibility() {
+        isDockVisible = !isDockVisible
+        stopHoldScroll()
+        stopJumpToTop()
+        if (isDockVisible) {
+            setupFloatingDock()
+            dockView?.visibility = View.VISIBLE
+        } else {
+            dockView?.visibility = View.GONE
+        }
+        showControlNotification()
     }
 
     private fun registerFingerprintGesturesIfSupported() {
@@ -190,7 +276,6 @@ class SwipeAccessibilityService : AccessibilityService() {
         val duration = ScrollPrefs.getDurationMs(this).coerceIn(70L, 220L)
 
         val height = metrics.heightPixels.toFloat()
-        // خطوة تدريجية ناعمة تشبه سحب الإصبع المستمر بدلاً من قفزة كاملة
         val span = height * distFactor * 0.22f
         val midY = height * 0.5f
 
@@ -250,6 +335,12 @@ class SwipeAccessibilityService : AccessibilityService() {
         super.onDestroy()
         stopHoldScroll()
         stopJumpToTop()
+        try {
+            unregisterReceiver(toggleReceiver)
+        } catch (_: Exception) {
+        }
+        val manager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        manager.cancel(NOTIF_ID)
         if (fpCallbackRegistered) {
             fingerprintGestureController?.unregisterFingerprintGestureCallback(fpGestureCallback)
             fpCallbackRegistered = false

@@ -4,35 +4,45 @@
     android:layout_width="wrap_content"
     android:layout_height="wrap_content"
     android:orientation="vertical"
-    android:padding="4dp"
-    android:background="@android:color/black"
-    android:alpha="0.72">
+    android:padding="2dp">
 
     <TextView
         android:id="@+id/btnScrollUp"
-        android:layout_width="42dp"
-        android:layout_height="38dp"
+        android:layout_width="38dp"
+        android:layout_height="36dp"
         android:gravity="center"
         android:text="▲"
         android:textColor="@android:color/white"
-        android:textSize="16sp" />
+        android:textSize="17sp"
+        android:shadowColor="@android:color/black"
+        android:shadowDx="0"
+        android:shadowDy="1"
+        android:shadowRadius="4" />
 
     <TextView
         android:id="@+id/btnScrollDown"
-        android:layout_width="42dp"
-        android:layout_height="38dp"
+        android:layout_width="38dp"
+        android:layout_height="36dp"
         android:gravity="center"
         android:text="▼"
         android:textColor="@android:color/white"
-        android:textSize="16sp" />
+        android:textSize="17sp"
+        android:shadowColor="@android:color/black"
+        android:shadowDx="0"
+        android:shadowDy="1"
+        android:shadowRadius="4" />
 
     <TextView
         android:id="@+id/btnJumpTop"
-        android:layout_width="42dp"
-        android:layout_height="38dp"
+        android:layout_width="38dp"
+        android:layout_height="36dp"
         android:gravity="center"
         android:text="⏫"
         android:textColor="@android:color/holo_orange_light"
-        android:textSize="15sp" />
+        android:textSize="15sp"
+        android:shadowColor="@android:color/black"
+        android:shadowDx="0"
+        android:shadowDy="1"
+        android:shadowRadius="4" />
 
 </LinearLayout>
